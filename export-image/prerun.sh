@@ -65,7 +65,7 @@ if [ "${NO_PRERUN_QCOW2}" = "0" ]; then
 		fi
 	done
 
-	ensure_loopdev_partitions
+	ensure_loopdev_partitions $LOOP_DEV
 	
 	BOOT_DEV="${LOOP_DEV}p1"
 	ROOT_DEV="${LOOP_DEV}p2"

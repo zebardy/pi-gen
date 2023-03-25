@@ -10,6 +10,9 @@ RUN apt-get -y update && \
         libarchive-tools libcap2-bin rsync grep udev xz-utils curl xxd file kmod bc\
         binfmt-support ca-certificates qemu-utils kpartx fdisk gpg pigz\
     && rm -rf /var/lib/apt/lists/*
+    
+RUN rm /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/01keep-debs
 
 COPY . /pi-gen/
 

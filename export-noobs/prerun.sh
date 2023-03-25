@@ -5,13 +5,20 @@ mkdir -p "${STAGE_WORK_DIR}"
 
 IMG_FILE="${WORK_DIR}/export-image/${IMG_FILENAME}${IMG_SUFFIX}.img"
 
+ensure_next_loopdev() {
+	local loopdev
+	loopdev="$(losetup -f)"
+	loopmaj="$(echo \"$loopdev\" | sed -E 's/.*loop([0-9]+)$/\1/')"
+	[[ -b "$loopdev" ]] || mknod "$loopdev" b 7 "$loopmaj"
+}
+
 unmount_image "${IMG_FILE}"
 
 rm -rf "${NOOBS_DIR}"
 
 echo "Creating loop device..."
 cnt=0
-until LOOP_DEV="$(losetup --show --find --partscan "$IMG_FILE")"; do
+until ensure_next_loopdev && LOOP_DEV="$(losetup --show --find --partscan "$IMG_FILE")"; do
 	if [ $cnt -lt 5 ]; then
 		cnt=$((cnt + 1))
 		echo "Error in losetup.  Retrying..."

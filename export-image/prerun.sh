@@ -7,6 +7,18 @@ ensure_next_loopdev() {
 	[[ -b "$loopdev" ]] || mknod "$loopdev" b 7 "$loopmaj"
 }
 
+ensure_loopdev_partitions(){
+	LOOPDEV=$1
+	PARTITIONS=$(lsblk --raw --output "MAJ:MIN" --noheadings ${LOOPDEV} | tail -n +2)
+	COUNTER=1
+	for i in $PARTITIONS; do
+	    MAJ=$(echo $i | cut -d: -f1)
+	    MIN=$(echo $i | cut -d: -f2)
+	    if [ ! -e "${LOOPDEV}p${COUNTER}" ]; then mknod ${LOOPDEV}p${COUNTER} b $MAJ $MIN; fi
+	    COUNTER=$((COUNTER + 1))
+	done
+}
+
 if [ "${NO_PRERUN_QCOW2}" = "0" ]; then
 	IMG_FILE="${STAGE_WORK_DIR}/${IMG_FILENAME}${IMG_SUFFIX}.img"
 
@@ -53,6 +65,8 @@ if [ "${NO_PRERUN_QCOW2}" = "0" ]; then
 		fi
 	done
 
+	ensure_loopdev_partitions
+	
 	BOOT_DEV="${LOOP_DEV}p1"
 	ROOT_DEV="${LOOP_DEV}p2"
 	

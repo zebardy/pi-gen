@@ -55,6 +55,12 @@ if [ "${NO_PRERUN_QCOW2}" = "0" ]; then
 
 	BOOT_DEV="${LOOP_DEV}p1"
 	ROOT_DEV="${LOOP_DEV}p2"
+	
+	bootmaj="$(echo \"$BOOT_DEV\" | sed -E 's/.*loop([0-9]+p[0-9]+)$/\1/')"
+	[[ -b "$BOOT_DEV" ]] || mknod "$BOOT_DEV" b 7 "$bootmaj"
+
+	rootmaj="$(echo \"$ROOT_DEV\" | sed -E 's/.*loop([0-9]+p[0-9]+)$/\1/')"
+	[[ -b "$ROOT_DEV" ]] || mknod "$ROOT_DEV" b 7 "$rootmaj"
 
 	ROOT_FEATURES="^huge_file"
 	for FEATURE in 64bit; do

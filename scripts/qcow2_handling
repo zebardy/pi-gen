@@ -181,6 +181,13 @@ function resize_qcow2() {
 }
 export -f resize_qcow2
 
+ensure_next_loopdev() {
+	local loopdev
+	loopdev="$(losetup -f)"
+	loopmaj="$(echo \"$loopdev\" | sed -E 's/.*loop([0-9]+)$/\1/')"
+	[[ -b "$loopdev" ]] || mknod "$loopdev" b 7 "$loopmaj"
+}
+
 # create raw img from qcow2: make_bootable_image <in.qcow2> <out.img>
 function make_bootable_image() {
     
@@ -226,10 +233,12 @@ function make_bootable_image() {
 
 	MOUNTPT=$MOUNTROOT
 	PARTITION=2
+	ensure_next_loopdev
 	mount "${EXPORT_IMAGE}" "$MOUNTPT" -o loop,offset=$[ `/sbin/sfdisk -d "${EXPORT_IMAGE}" | grep "start=" | head -n $PARTITION | tail -n1 | sed 's/.*start=[ ]*//' | sed 's/,.*//'` * 512 ],sizelimit=$[ `/sbin/sfdisk -d "${EXPORT_IMAGE}" | grep "start=" | head -n $PARTITION | tail -n1 | sed 's/.*size=[ ]*//' | sed 's/,.*//'` * 512 ] || exit 1
 
 	MOUNTPT=$MOUNTROOT/boot
 	PARTITION=1
+	ensure_next_loopdev
 	mount "${EXPORT_IMAGE}" "$MOUNTPT" -o loop,offset=$[ `/sbin/sfdisk -d "${EXPORT_IMAGE}" | grep "start=" | head -n $PARTITION | tail -n1 | sed 's/.*start=[ ]*//' | sed 's/,.*//'` * 512 ],sizelimit=$[ `/sbin/sfdisk -d "${EXPORT_IMAGE}" | grep "start=" | head -n $PARTITION | tail -n1 | sed 's/.*size=[ ]*//' | sed 's/,.*//'` * 512 ] || exit 1
 
 	if [ ! -d "${MOUNTROOT}/root" ]; then

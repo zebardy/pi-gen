@@ -12,6 +12,18 @@ ensure_next_loopdev() {
 	[[ -b "$loopdev" ]] || mknod "$loopdev" b 7 "$loopmaj"
 }
 
+ensure_loopdev_partitions(){
+	LOOPDEV=$1
+	PARTITIONS=$(lsblk --raw --output "MAJ:MIN" --noheadings ${LOOPDEV} | tail -n +2)
+	COUNTER=1
+	for i in $PARTITIONS; do
+	    MAJ=$(echo $i | cut -d: -f1)
+	    MIN=$(echo $i | cut -d: -f2)
+	    if [ ! -e "${LOOPDEV}p${COUNTER}" ]; then mknod ${LOOPDEV}p${COUNTER} b $MAJ $MIN; fi
+	    COUNTER=$((COUNTER + 1))
+	done
+}
+
 unmount_image "${IMG_FILE}"
 
 rm -rf "${NOOBS_DIR}"
@@ -29,6 +41,8 @@ until ensure_next_loopdev && LOOP_DEV="$(losetup --show --find --partscan "$IMG_
 	fi
 done
 
+ensure_loopdev_partitions ${LOOP_DEV}
+
 BOOT_DEV="${LOOP_DEV}p1"
 ROOT_DEV="${LOOP_DEV}p2"
 
@@ -39,14 +53,6 @@ echo "Mounting partitions..."
 
 mount "$ROOT_DEV" "${STAGE_WORK_DIR}/rootfs"
 mount "$BOOT_DEV" "${STAGE_WORK_DIR}/rootfs/boot"
-
-echo "Ensure partition loop devices are accessable..."
-
-bootmaj="$(echo \"$BOOT_DEV\" | sed -E 's/.*loop([0-9]+p[0-9]+)$/\1/')"
-[[ -b "$BOOT_DEV" ]] || mknod "$BOOT_DEV" b 7 "$bootmaj"
-
-rootmaj="$(echo \"$ROOT_DEV\" | sed -E 's/.*loop([0-9]+p[0-9]+)$/\1/')"
-[[ -b "$ROOT_DEV" ]] || mknod "$ROOT_DEV" b 7 "$rootmaj"
 
 echo "Configure OS and kernel..."
 

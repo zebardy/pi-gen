@@ -56,11 +56,7 @@ if [ "${NO_PRERUN_QCOW2}" = "0" ]; then
 	BOOT_DEV="${LOOP_DEV}p1"
 	ROOT_DEV="${LOOP_DEV}p2"
 	
-	bootmaj="$(echo \"$BOOT_DEV\" | sed -E 's/.*loop([0-9]+p[0-9]+)$/\1/')"
-	[[ -b "$BOOT_DEV" ]] || mknod "$BOOT_DEV" b 7 "$bootmaj"
-
-	rootmaj="$(echo \"$ROOT_DEV\" | sed -E 's/.*loop([0-9]+p[0-9]+)$/\1/')"
-	[[ -b "$ROOT_DEV" ]] || mknod "$ROOT_DEV" b 7 "$rootmaj"
+	echo "Format the loop device partitions..."
 
 	ROOT_FEATURES="^huge_file"
 	for FEATURE in 64bit; do
@@ -70,10 +66,14 @@ if [ "${NO_PRERUN_QCOW2}" = "0" ]; then
 	done
 	mkdosfs -n bootfs -F 32 -s 4 -v "$BOOT_DEV" > /dev/null
 	mkfs.ext4 -L rootfs -O "$ROOT_FEATURES" "$ROOT_DEV" > /dev/null
+	
+	echo "Mount the partitions..."
 
 	mount -v "$ROOT_DEV" "${ROOTFS_DIR}" -t ext4
 	mkdir -p "${ROOTFS_DIR}/boot"
 	mount -v "$BOOT_DEV" "${ROOTFS_DIR}/boot" -t vfat
+	
+	echo "Copy files to the partitions..."
 
 	rsync -aHAXx --exclude /var/cache/apt/archives --exclude /boot "${EXPORT_ROOTFS_DIR}/" "${ROOTFS_DIR}/"
 	rsync -rtx "${EXPORT_ROOTFS_DIR}/boot/" "${ROOTFS_DIR}/boot/"
